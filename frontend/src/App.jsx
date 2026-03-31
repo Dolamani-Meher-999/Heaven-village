@@ -11,48 +11,62 @@ import AuthModal          from "./components/AuthModal";
 import TenantDashboard    from "./pages/TenantDashboard";
 import OwnerDashboard     from "./pages/OwnerDashboard";
 import AdminDashboard     from "./pages/AdminDashboard";
+import PageOverlay        from "./components/PageOverlay";
 
 const getStoredUser = () => {
-  const stored = localStorage.getItem("hv_user");
-  if (!stored) return null;
-  return JSON.parse(stored);
+  try { return JSON.parse(localStorage.getItem("hv_user") || "null"); }
+  catch { return null; }
 };
 
 export default function App() {
   const [authMode, setAuthMode] = useState(null);
   const [user,     setUser]     = useState(getStoredUser);
 
-  const handleAuthSuccess = (userData) => {
-    setUser(userData);
-    setAuthMode(null);
-  };
+  const handleAuthSuccess = (userData) => { setUser(userData); setAuthMode(null); };
 
-  if (user && user.role === "tenant") return <TenantDashboard />;
-  if (user && user.role === "owner")  return <OwnerDashboard />;
-  if (user && user.role === "admin")  return <AdminDashboard />;
+  const renderView = () => {
+    if (user?.role === "tenant") return <TenantDashboard />;
+    if (user?.role === "owner")  return <OwnerDashboard />;
+    if (user?.role === "admin")  return <AdminDashboard />;
+
+    // Landing page
+    return (
+      <>
+        <Navbar
+          onLogin={()    => setAuthMode("login")}
+          onRegister={()  => setAuthMode("register")}
+        />
+        <Hero onRegister={() => setAuthMode("register")} />
+        <Stats />
+        <PropertyTypes />
+        <FeaturedProperties />
+        <HowItWorks />
+        <CTA onRegister={() => setAuthMode("register")} />
+        <Footer />
+
+        {authMode && (
+          <AuthModal
+            mode={authMode}
+            onClose={()   => setAuthMode(null)}
+            onSwitch={()  => setAuthMode((m) => m === "login" ? "register" : "login")}
+            onSuccess={handleAuthSuccess}
+          />
+        )}
+      </>
+    );
+  };
 
   return (
     <>
-      <Navbar
-        onLogin={()   => setAuthMode("login")}
-        onRegister={() => setAuthMode("register")}
-      />
-      <Hero onRegister={() => setAuthMode("register")} />
-      <Stats />
-      <PropertyTypes />
-      <FeaturedProperties />
-      <HowItWorks />
-      <CTA onRegister={() => setAuthMode("register")} />
-      <Footer />
+      {renderView()}
 
-      {authMode && (
-        <AuthModal
-          mode={authMode}
-          onClose={()  => setAuthMode(null)}
-          onSwitch={()  => setAuthMode((m) => (m === "login" ? "register" : "login"))}
-          onSuccess={handleAuthSuccess}
-        />
-      )}
+      {/*
+        PageOverlay is ALWAYS mounted here at the top level.
+        It listens for "hv:navigate" window events fired by Footer.
+        Works on top of ANY view — landing, tenant, owner, admin.
+        No props needed on Footer or any dashboard.
+      */}
+      <PageOverlay />
     </>
   );
 }
