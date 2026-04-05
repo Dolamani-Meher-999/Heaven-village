@@ -102,9 +102,10 @@ export default function PropertyForm({ onSuccess, editData = null }) {
       });
       images.forEach((img) => fd.append("images", img));
 
+      const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
       const url = editData
-        ? `http://localhost:5000/api/properties/${editData._id}`
-        : "http://localhost:5000/api/properties";
+      ? `${API}/api/properties/${editData._id}`
+      : `${API}/api/properties`;
       const method = editData ? "PUT" : "POST";
 
       const res = await fetch(url, {

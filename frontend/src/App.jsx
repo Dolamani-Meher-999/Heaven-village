@@ -20,14 +20,24 @@ const getStoredUser = () => {
 
 export default function App() {
   const [authMode, setAuthMode] = useState(null);
-  const [user,     setUser]     = useState(getStoredUser);
+  const [user, setUser] = useState(null);
 
-  const handleAuthSuccess = (userData) => { setUser(userData); setAuthMode(null); };
+  const handleAuthSuccess = (userData) => {
+    localStorage.setItem("hv_user", JSON.stringify(userData));
+    setUser(userData);
+    setAuthMode(null);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("hv_user");
+    localStorage.removeItem("hv_token");
+    setUser(null);
+  };
 
   const renderView = () => {
-    if (user?.role === "tenant") return <TenantDashboard />;
-    if (user?.role === "owner")  return <OwnerDashboard />;
-    if (user?.role === "admin")  return <AdminDashboard />;
+    if (user?.role === "tenant") return <TenantDashboard user={user} onLogout={handleLogout} />;
+    if (user?.role === "owner")  return <OwnerDashboard  user={user} onLogout={handleLogout} />;
+    if (user?.role === "admin")  return <AdminDashboard  user={user} onLogout={handleLogout} />;
 
     // Landing page
     return (
@@ -59,13 +69,6 @@ export default function App() {
   return (
     <>
       {renderView()}
-
-      {/*
-        PageOverlay is ALWAYS mounted here at the top level.
-        It listens for "hv:navigate" window events fired by Footer.
-        Works on top of ANY view — landing, tenant, owner, admin.
-        No props needed on Footer or any dashboard.
-      */}
       <PageOverlay />
     </>
   );

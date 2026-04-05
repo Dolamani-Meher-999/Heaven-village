@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const API = "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const ROLE_STYLES = {
   tenant: { bg: "#EFF6FF", color: "#1D4ED8", border: "rgba(59,130,246,0.2)" },

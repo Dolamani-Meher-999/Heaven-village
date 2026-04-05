@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-const API = "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const FALLBACK_IMAGES = [
   "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=300&q=80",

@@ -6,24 +6,24 @@ import PropertyForm       from "../components/owner/PropertyForm";
 import RentRequestsPanel  from "../components/owner/RentRequestsPanel";
 import Footer             from "../components/Footer";
 
-export default function OwnerDashboard() {
-  const [activeTab,   setActiveTab]   = useState("overview");
-  const [properties,  setProperties]  = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [editProperty,setEditProperty]= useState(null);
-  const [deleteId,    setDeleteId]    = useState(null);
+export default function OwnerDashboard({ user, onLogout }) {
+  const [activeTab,    setActiveTab]    = useState("overview");
+  const [properties,   setProperties]   = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [editProperty, setEditProperty] = useState(null);
   const token = localStorage.getItem("hv_token");
 
   const fetchProperties = async () => {
     setLoading(true);
     try {
-      const res  = await fetch("http://localhost:5000/api/properties/owner/my-listings", {
+      const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const res = await fetch(`${API}/api/properties/owner/my-listings`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       setProperties(data.data || []);
     } catch (err) { console.error(err); }
-    finally       { setLoading(false); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { fetchProperties(); }, []);
@@ -31,7 +31,8 @@ export default function OwnerDashboard() {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this property?")) return;
     try {
-      await fetch(`http://localhost:5000/api/properties/${id}`, {
+      const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      await fetch(`${API}/api/properties/${id}`, {
         method: "DELETE", headers: { Authorization: `Bearer ${token}` },
       });
       fetchProperties();
@@ -43,35 +44,38 @@ export default function OwnerDashboard() {
     setActiveTab("add");
   };
 
-  // Stats derived from properties
+  const handleTabChange = (tab) => {
+    if (tab === "logout") { onLogout(); return; }
+    setActiveTab(tab);
+    if (tab !== "add") setEditProperty(null);
+  };
+
   const stats = {
     total:    properties.length,
     approved: properties.filter((p) => p.status === "approved").length,
     pending:  properties.filter((p) => p.status === "pending").length,
     rented:   properties.filter((p) => p.availabilityStatus === "rented").length,
-    requests: 0, // will be shown in requests tab
+    requests: 0,
   };
 
   return (
     <div className="min-h-screen bg-cream">
-      <OwnerNavbar activeTab={activeTab} setActiveTab={(tab) => { setActiveTab(tab); if (tab !== "add") setEditProperty(null); }} />
+      <OwnerNavbar activeTab={activeTab} setActiveTab={handleTabChange} onLogout={onLogout} />
 
       <main className="max-w-[1200px] mx-auto px-8 pt-24 pb-16">
 
         {/* ── OVERVIEW ─────────────────────────────────────────── */}
         {activeTab === "overview" && (
           <div>
-            {/* Welcome */}
             <div className="mb-8">
               <h1 className="font-display text-3xl font-bold text-charcoal mb-1">
-                Welcome back, {JSON.parse(localStorage.getItem("hv_user") || "{}").name?.split(" ")[0]} 👋
+                Welcome back, {user?.name?.split(" ")[0] || JSON.parse(localStorage.getItem("hv_user") || "{}").name?.split(" ")[0]} 👋
               </h1>
               <p className="font-body text-charcoal/45">Here's an overview of your property portfolio.</p>
             </div>
 
             <OwnerStatsBar stats={stats} />
 
-            {/* Recent properties */}
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <div className="w-1 h-7 orange-gradient rounded-full" />
@@ -107,12 +111,11 @@ export default function OwnerDashboard() {
               </div>
             )}
 
-            {/* Quick actions */}
             <div className="grid grid-cols-3 gap-4 mt-8">
               {[
-                { icon:"＋", label:"Add New Property",  desc:"List a new property for rent",       tab:"add",        color:"orange-gradient text-white shadow-orange" },
-                { icon:"📋", label:"View Requests",      desc:"Manage incoming rent requests",      tab:"requests",   color:"bg-white border border-gray-200 text-charcoal" },
-                { icon:"🏠", label:"My Listings",        desc:"View and manage all your properties",tab:"properties", color:"bg-white border border-gray-200 text-charcoal" },
+                { icon:"＋", label:"Add New Property",  desc:"List a new property for rent",        tab:"add",        color:"orange-gradient text-white shadow-orange" },
+                { icon:"📋", label:"View Requests",      desc:"Manage incoming rent requests",       tab:"requests",   color:"bg-white border border-gray-200 text-charcoal" },
+                { icon:"🏠", label:"My Listings",        desc:"View and manage all your properties", tab:"properties", color:"bg-white border border-gray-200 text-charcoal" },
               ].map((action) => (
                 <button key={action.tab} onClick={() => setActiveTab(action.tab)}
                   className={`${action.color} rounded-2xl p-5 text-left hover:opacity-90 transition-all shadow-card hover:shadow-card-hover`}>

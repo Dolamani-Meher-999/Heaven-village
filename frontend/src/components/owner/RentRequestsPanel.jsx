@@ -25,7 +25,8 @@ export default function RentRequestsPanel() {
 
   const handleAction = async (id, status) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/properties/owner/rent-requests/${id}`, {
+      const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const res = await fetch(`${API}/api/properties/owner/rent-requests/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status }),

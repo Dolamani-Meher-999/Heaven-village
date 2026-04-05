@@ -6,13 +6,19 @@ import UsersPanel             from "../components/admin/UsersPanel";
 import AdminRentRequestsPanel from "../components/admin/AdminRentRequestsPanel";
 import Footer                 from "../components/Footer";
 
-const API = "http://localhost:5000";
+const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-export default function AdminDashboard() {
+export default function AdminDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [stats,     setStats]     = useState({});
   const token = localStorage.getItem("hv_token");
-  const user  = JSON.parse(localStorage.getItem("hv_user") || "{}");
+
+  const storedUser = user || JSON.parse(localStorage.getItem("hv_user") || "{}");
+
+  const handleTabChange = (tab) => {
+    if (tab === "logout") { onLogout(); return; }
+    setActiveTab(tab);
+  };
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good Morning" : hour < 17 ? "Good Afternoon" : "Good Evening";
@@ -44,19 +50,16 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen" style={{ background: "#F4F3F0" }}>
-      <AdminNavbar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <AdminNavbar activeTab={activeTab} setActiveTab={handleTabChange} onLogout={onLogout} />
 
       <main className="max-w-[1280px] mx-auto px-8 pt-24 pb-16">
 
-        {/* ── OVERVIEW ─────────────────────────────────────────── */}
         {activeTab === "overview" && (
           <div>
-
-            {/* Hero Banner — pure CSS, no external images needed */}
+            {/* Hero Banner */}
             <div className="relative rounded-3xl overflow-hidden mb-8"
               style={{ background: "linear-gradient(135deg,#1A1A2E 0%,#16213E 55%,#0F3460 100%)", minHeight: 220 }}>
 
-              {/* Concentric circle decorations */}
               <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 {[300, 420, 540, 660, 780].map((size, i) => (
                   <div key={i} style={{
@@ -69,21 +72,17 @@ export default function AdminDashboard() {
                 ))}
               </div>
 
-              {/* Grid dot pattern (left half) */}
               <div className="absolute inset-0 pointer-events-none" style={{
                 backgroundImage: "radial-gradient(circle, rgba(232,98,26,0.12) 1px, transparent 1px)",
                 backgroundSize: "28px 28px",
                 maskImage: "linear-gradient(to right, transparent, rgba(0,0,0,0.4) 20%, transparent 60%)",
               }} />
 
-              {/* Left orange accent bar */}
               <div className="absolute top-0 left-0 w-1.5 h-full"
                 style={{ background: "linear-gradient(180deg,#E8621A,#F5874A)", borderRadius: "12px 0 0 12px" }} />
 
-              {/* Main content */}
               <div className="relative z-10 px-12 py-10 flex items-center justify-between">
                 <div className="flex-1">
-                  {/* Status pill */}
                   <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full mb-5"
                     style={{ background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.25)" }}>
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -92,14 +91,12 @@ export default function AdminDashboard() {
                     </span>
                   </div>
 
-                  {/* Greeting */}
                   <h1 className="font-display font-bold text-white leading-tight mb-2" style={{ fontSize: 42 }}>
                     {greeting},{" "}
-                    <span style={{ color: "#F5874A" }}>{user.name?.split(" ")[0]}</span> 👋
+                    <span style={{ color: "#F5874A" }}>{storedUser.name?.split(" ")[0]}</span> 👋
                   </h1>
                   <p className="font-body text-white/40 mb-7" style={{ fontSize: 14 }}>{today}</p>
 
-                  {/* Quick metric pills */}
                   <div className="flex items-center gap-3 flex-wrap">
                     {[
                       { label: "Properties Live",  val: stats.approved    ?? "—", color: "#10B981" },
@@ -118,7 +115,6 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Right: SVG donut ring */}
                 <div className="flex-shrink-0 ml-10 mr-4">
                   <div className="relative" style={{ width: 148, height: 148 }}>
                     <svg viewBox="0 0 148 148" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)" }}>
@@ -126,7 +122,7 @@ export default function AdminDashboard() {
                         stroke="rgba(255,255,255,0.05)" strokeWidth="14"/>
                       <circle cx="74" cy="74" r="58" fill="none"
                         stroke="url(#donutGrad)" strokeWidth="14" strokeLinecap="round"
-                        strokeDasharray={`${((( stats.approved ?? 0) / Math.max(stats.totalProperties ?? 1, 1)) * 364).toFixed(0)} 364`}/>
+                        strokeDasharray={`${(((stats.approved ?? 0) / Math.max(stats.totalProperties ?? 1, 1)) * 364).toFixed(0)} 364`}/>
                       <defs>
                         <linearGradient id="donutGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                           <stop offset="0%" stopColor="#E8621A"/>
@@ -147,10 +143,8 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Stats bar */}
             <AdminStatsBar stats={stats} />
 
-            {/* Quick Action Cards */}
             <div className="grid grid-cols-3 gap-5 mb-10">
               {[
                 {
@@ -197,7 +191,6 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            {/* Pending Approvals section — single clean heading */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-1 h-8 rounded-full"
@@ -229,7 +222,6 @@ export default function AdminDashboard() {
             ) : (
               <PendingPropertiesPanel filterAll={false} />
             )}
-
           </div>
         )}
 

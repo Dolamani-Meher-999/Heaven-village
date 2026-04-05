@@ -12,7 +12,7 @@ export default function AuthModal({ mode, onClose, onSwitch, onSuccess }) {
     if (!isLogin && !form.name)        { setError("Name is required"); return; }
     setLoading(true);
     try {
-      const url  = `http://localhost:5000/api/auth/${isLogin ? "login" : "register"}`;
+      const url = `${import.meta.env.VITE_API_URL || "http://localhost:5000"}/api/auth/${isLogin ? "login" : "register"}`;
       const body = isLogin
         ? { email: form.email, password: form.password }
         : { name: form.name, email: form.email, password: form.password, role: form.role };

@@ -12,7 +12,8 @@ export default function RentRequestModal({ property, onClose }) {
     if (!form.moveInDate) { setError("Please select a move-in date"); return; }
     setLoading(true); setError("");
     try {
-      const res  = await fetch(`http://localhost:5000/api/properties/${property._id}/rent-request`, {
+      const API = import.meta.env.VITE_API_URL || "http://localhost:5000";
+      const res = await fetch(`${API}/api/properties/${property._id}/rent-request`, {
         method:"POST", headers:{"Content-Type":"application/json", Authorization:`Bearer ${token}`},
         body: JSON.stringify(form),
       });
