@@ -14,7 +14,18 @@ connectDB();
 
 /* ---------- MIDDLEWARE ---------- */
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://heaven-village.vercel.app'],
+  origin: function(origin, callback) {
+    const allowed = [
+      'http://localhost:5173',
+      'https://heaven-village.vercel.app',
+      'https://heaven-village-git-main-dolamanimeher999-4544s-projects.vercel.app'
+    ];
+    if (!origin || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }))
 app.use(express.json());
