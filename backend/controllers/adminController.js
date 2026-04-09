@@ -45,18 +45,21 @@ export const getPendingProperties = async (req, res) => {
 // ─── Approve property ─────────────────────────────────────────────────────────
 export const approveProperty = async (req, res) => {
   try {
-    const property = await Property.findById(req.params.id);
+    const property = await Property.findByIdAndUpdate(
+      req.params.id,
+      { status: "approved" },
+      { new: true, runValidators: false }
+    );
+
     if (!property) {
       return res.status(404).json({ success: false, message: "Property not found" });
     }
-
-    property.status = "approved";
-    await property.save();
 
     res.status(200).json({
       success: true, message: "Property approved", data: property,
     });
   } catch (error) {
+    console.error("approveProperty error:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -64,22 +67,22 @@ export const approveProperty = async (req, res) => {
 // ─── Reject property ──────────────────────────────────────────────────────────
 export const rejectProperty = async (req, res) => {
   try {
-    const property = await Property.findById(req.params.id);
+    // ✅ Use findByIdAndUpdate to avoid Mongoose validation/strict mode issues
+    const property = await Property.findByIdAndUpdate(
+      req.params.id,
+      { status: "rejected" },
+      { new: true, runValidators: false }
+    );
+
     if (!property) {
       return res.status(404).json({ success: false, message: "Property not found" });
     }
-
-    property.status = "rejected";
-
-    // Optional rejection reason from admin
-    if (req.body.reason) property.rejectionReason = req.body.reason;
-
-    await property.save();
 
     res.status(200).json({
       success: true, message: "Property rejected", data: property,
     });
   } catch (error) {
+    console.error("rejectProperty error:", error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
