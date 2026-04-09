@@ -13,14 +13,41 @@ import OwnerDashboard     from "./pages/OwnerDashboard";
 import AdminDashboard     from "./pages/AdminDashboard";
 import PageOverlay        from "./components/PageOverlay";
 
+// ── Restore session only if JWT token exists and hasn't expired ──────────────
 const getStoredUser = () => {
-  try { return JSON.parse(localStorage.getItem("hv_user") || "null"); }
-  catch { return null; }
+  try {
+    const token    = localStorage.getItem("hv_token");
+    const userData = localStorage.getItem("hv_user");
+
+    if (!token || !userData) return null;
+
+    // Decode JWT payload (no library needed — just base64 decode the middle part)
+    const payload   = JSON.parse(atob(token.split(".")[1]));
+    const isExpired = payload.exp && payload.exp * 1000 < Date.now();
+
+    if (isExpired) {
+      // Token expired — wipe storage and fall through to landing page
+      localStorage.removeItem("hv_token");
+      localStorage.removeItem("hv_user");
+      return null;
+    }
+
+    return JSON.parse(userData);
+  } catch {
+    // Malformed token — wipe and show landing page
+    localStorage.removeItem("hv_token");
+    localStorage.removeItem("hv_user");
+    return null;
+  }
 };
 
 export default function App() {
   const [authMode, setAuthMode] = useState(null);
-  const [user, setUser] = useState(null);
+
+  // null  → landing page
+  // valid user object → dashboard
+  // getStoredUser only returns non-null if token is valid & not expired
+  const [user, setUser] = useState(getStoredUser);
 
   const handleAuthSuccess = (userData) => {
     localStorage.setItem("hv_user", JSON.stringify(userData));
@@ -29,9 +56,13 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    // Clear this user's saved properties so they don't appear for the next login
+    const uid = user?._id || user?.id;
+    if (uid) localStorage.removeItem(`hv_saved_${uid}`);
+
     localStorage.removeItem("hv_user");
     localStorage.removeItem("hv_token");
-    setUser(null);
+    setUser(null); // → back to landing page
   };
 
   const renderView = () => {
@@ -39,7 +70,7 @@ export default function App() {
     if (user?.role === "owner")  return <OwnerDashboard  user={user} onLogout={handleLogout} />;
     if (user?.role === "admin")  return <AdminDashboard  user={user} onLogout={handleLogout} />;
 
-    // Landing page
+    // ── Landing page ────────────────────────────────────────────────────────
     return (
       <>
         <Navbar
@@ -57,7 +88,7 @@ export default function App() {
         {authMode && (
           <AuthModal
             mode={authMode}
-            onClose={()   => setAuthMode(null)}
+            onClose={()  => setAuthMode(null)}
             onSwitch={()  => setAuthMode((m) => m === "login" ? "register" : "login")}
             onSuccess={handleAuthSuccess}
           />

@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import propertyRoutes from "./routes/propertyRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import rentRequestRoutes from "./routes/rentRequestRoutes.js";
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/rent-requests", rentRequestRoutes);
 
 app.get("/", (req, res) => {
   res.send("API Running");
