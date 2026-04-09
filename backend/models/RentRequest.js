@@ -22,7 +22,8 @@ const rentRequestSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      // ✅ FIX: added "cancelled" so tenant cancel works and shows in admin
+      enum: ["pending", "approved", "rejected", "cancelled"],
       default: "pending",
     },
 

@@ -8,43 +8,24 @@ export const submitRentRequest = async (req, res) => {
     const propertyId = req.params.id;
     const tenantId   = req.user._id;
 
-    // 1. Check property exists and is approved + available
     const property = await Property.findById(propertyId);
     if (!property) {
-      return res.status(404).json({
-        success: false,
-        message: "Property not found",
-      });
+      return res.status(404).json({ success: false, message: "Property not found" });
     }
 
     if (property.status !== "approved") {
-      return res.status(400).json({
-        success: false,
-        message: "Property is not available for rent requests",
-      });
+      return res.status(400).json({ success: false, message: "Property is not available for rent requests" });
     }
 
     if (property.availabilityStatus !== "available") {
-      return res.status(400).json({
-        success: false,
-        message: "Property is already rented",
-      });
+      return res.status(400).json({ success: false, message: "Property is already rented" });
     }
 
-    // 2. Prevent owner from requesting their own property
     if (property.owner.toString() === tenantId.toString()) {
-      return res.status(400).json({
-        success: false,
-        message: "You cannot request your own property",
-      });
+      return res.status(400).json({ success: false, message: "You cannot request your own property" });
     }
 
-    // 3. Check for duplicate request (index handles this but give clean error)
-    const existing = await RentRequest.findOne({
-      property: propertyId,
-      tenant:   tenantId,
-    });
-
+    const existing = await RentRequest.findOne({ property: propertyId, tenant: tenantId });
     if (existing) {
       return res.status(400).json({
         success: false,
@@ -53,15 +34,10 @@ export const submitRentRequest = async (req, res) => {
       });
     }
 
-    // 4. Validate move-in date
     if (moveInDate && new Date(moveInDate) < new Date()) {
-      return res.status(400).json({
-        success: false,
-        message: "Move-in date must be in the future",
-      });
+      return res.status(400).json({ success: false, message: "Move-in date must be in the future" });
     }
 
-    // 5. Create request
     const rentRequest = await RentRequest.create({
       property:   propertyId,
       tenant:     tenantId,
@@ -82,12 +58,8 @@ export const submitRentRequest = async (req, res) => {
     });
 
   } catch (error) {
-    // Mongoose duplicate key error (race condition safety)
     if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: "You have already submitted a request for this property",
-      });
+      return res.status(400).json({ success: false, message: "You have already submitted a request for this property" });
     }
     console.error("submitRentRequest error:", error);
     res.status(500).json({ success: false, message: error.message });
@@ -134,18 +106,11 @@ export const cancelRentRequest = async (req, res) => {
     const request = await RentRequest.findById(req.params.id);
 
     if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: "Rent request not found",
-      });
+      return res.status(404).json({ success: false, message: "Rent request not found" });
     }
 
-    // Ownership check
     if (request.tenant.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "Not your request",
-      });
+      return res.status(403).json({ success: false, message: "Not your request" });
     }
 
     if (request.status !== "pending") {
@@ -155,11 +120,17 @@ export const cancelRentRequest = async (req, res) => {
       });
     }
 
-    await request.deleteOne();
+    // ✅ FIX: set status to "cancelled" instead of deleting
+    // This way it shows up in admin panel under "Cancelled" tab
+    // and tenant can still see it in their "My Requests" history
+    request.status      = "cancelled";
+    request.respondedAt = new Date();
+    await request.save();
 
     res.status(200).json({
       success: true,
       message: "Rent request cancelled successfully",
+      data:    request,
     });
 
   } catch (error) {
@@ -208,61 +179,34 @@ export const updateRequestStatus = async (req, res) => {
     const { status, ownerResponse } = req.body;
 
     if (!["approved", "rejected"].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: "Status must be 'approved' or 'rejected'",
-      });
+      return res.status(400).json({ success: false, message: "Status must be 'approved' or 'rejected'" });
     }
 
     const request = await RentRequest.findById(req.params.id);
 
     if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: "Rent request not found",
-      });
+      return res.status(404).json({ success: false, message: "Rent request not found" });
     }
 
-    // Verify this owner owns the property
     if (request.owner.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: "Not authorized to manage this request",
-      });
+      return res.status(403).json({ success: false, message: "Not authorized to manage this request" });
     }
 
     if (request.status !== "pending") {
-      return res.status(400).json({
-        success: false,
-        message: `Request already ${request.status}`,
-      });
+      return res.status(400).json({ success: false, message: `Request already ${request.status}` });
     }
 
-    // Update request
     request.status        = status;
     request.ownerResponse = ownerResponse || "";
     request.respondedAt   = new Date();
     await request.save();
 
-    // If approved — mark property as rented
-    // and reject all other pending requests for same property
     if (status === "approved") {
-      await Property.findByIdAndUpdate(request.property, {
-        availabilityStatus: "rented",
-      });
+      await Property.findByIdAndUpdate(request.property, { availabilityStatus: "rented" });
 
-      // Auto-reject other pending requests for same property
       await RentRequest.updateMany(
-        {
-          property: request.property,
-          _id:      { $ne: request._id },
-          status:   "pending",
-        },
-        {
-          status:        "rejected",
-          ownerResponse: "Property has been rented to another tenant",
-          respondedAt:   new Date(),
-        }
+        { property: request.property, _id: { $ne: request._id }, status: "pending" },
+        { status: "rejected", ownerResponse: "Property has been rented to another tenant", respondedAt: new Date() }
       );
     }
 
