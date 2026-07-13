@@ -19,10 +19,9 @@ app.use(
     origin: function (origin, callback) {
       const allowed = [
         "http://localhost:5173",
-        +"http://localhost:5174",
-        +"http://localhost:5175",
         "https://heaven-village.vercel.app",
         "https://heaven-village-git-main-dolamanimeher999-4544s-projects.vercel.app",
+        "heaven-village-hbapbgtsv-dolamanimeher999-4544s-projects.vercel.app",
       ];
       if (!origin || allowed.includes(origin)) {
         callback(null, true);
