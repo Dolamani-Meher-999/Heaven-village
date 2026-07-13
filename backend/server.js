@@ -14,24 +14,26 @@ const app = express();
 connectDB();
 
 /* ---------- MIDDLEWARE ---------- */
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      const allowed = [
-        "http://localhost:5173",
-        "https://heaven-village.vercel.app",
-        "https://heaven-village-git-main-dolamanimeher999-4544s-projects.vercel.app",
-        "heaven-village-hbapbgtsv-dolamanimeher999-4544s-projects.vercel.app",
-      ];
-      if (!origin || allowed.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  }),
-);
+app.use(cors({
+  origin: function(origin, callback) {
+    const allowed = [
+      'http://localhost:5173',
+      'https://heaven-village.vercel.app',
+    ];
+    // Vercel gives every deployment (production + every preview) its own unique
+    // URL like "heaven-village-<hash>-dolamanimeher999-4544s-projects.vercel.app".
+    // Rather than hardcoding each one (which changes on every deploy), allow
+    // any URL under this specific Vercel project.
+    const isVercelPreview = origin && /^https:\/\/heaven-village-[a-z0-9]+-dolamanimeher999-4544s-projects\.vercel\.app$/.test(origin);
+
+    if (!origin || allowed.includes(origin) || isVercelPreview) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}))
 app.use(express.json());
 
 /* ---------- ROUTES ---------- */
